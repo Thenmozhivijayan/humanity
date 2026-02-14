@@ -100,7 +100,7 @@ export default function InboxPage() {
 
           {conversations.map((conv) => {
             const lastMsg = conv.messages[conv.messages.length - 1];
-            const isUnread = lastMsg?.sender === 'CUSTOMER' && !lastMsg.read;
+            const isUnread = lastMsg?.sender === 'CUSTOMER';
             
             return (
               <div
