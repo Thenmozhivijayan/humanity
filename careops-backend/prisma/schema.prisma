@@ -1,0 +1,185 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Workspace {
+  id              String           @id @default(uuid())
+  name            String
+  address         String?
+  timezone        String
+  email           String
+  status          String           @default("DRAFT") // DRAFT | ACTIVE
+  users           User[]
+  integrations    Integration[]
+  services        Service[]
+  forms           Form[]
+  inventory       Inventory[]
+  contacts        Contact[]
+  bookings        Booking[]
+  alerts          Alert[]
+  automationRules AutomationRule[]
+  createdAt       DateTime         @default(now())
+}
+
+model User {
+  id          String    @id @default(uuid())
+  email       String    @unique
+  password    String
+  role        String    // OWNER | STAFF
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  createdAt   DateTime  @default(now())
+}
+
+model Customer {
+  id        String    @id @default(uuid())
+  name      String
+  email     String    @unique
+  phone     String?
+  password  String
+  contacts  Contact[]
+  createdAt DateTime  @default(now())
+}
+
+model Integration {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  type        String    // EMAIL | SMS | CALENDAR
+  provider    String    // SENDGRID | TWILIO | GOOGLE
+  config      String    // JSON config
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
+
+model Contact {
+  id            String         @id @default(uuid())
+  workspaceId   String
+  workspace     Workspace      @relation(fields: [workspaceId], references: [id])
+  customerId    String?
+  customer      Customer?      @relation(fields: [customerId], references: [id])
+  name          String?
+  email         String?
+  phone         String?
+  conversations Conversation[]
+  bookings      Booking[]
+  createdAt     DateTime       @default(now())
+}
+
+model Conversation {
+  id          String    @id @default(uuid())
+  contactId   String
+  contact     Contact   @relation(fields: [contactId], references: [id])
+  messages    Message[]
+  automated   Boolean   @default(true) // false when staff replies
+  createdAt   DateTime  @default(now())
+}
+
+model Message {
+  id             String       @id @default(uuid())
+  conversationId String
+  conversation   Conversation @relation(fields: [conversationId], references: [id])
+  sender         String       // CUSTOMER | STAFF | SYSTEM
+  content        String
+  channel        String       // EMAIL | SMS | INTERNAL
+  read           Boolean      @default(false)
+  createdAt      DateTime     @default(now())
+}
+
+model Service {
+  id           String         @id @default(uuid())
+  workspaceId  String
+  workspace    Workspace      @relation(fields: [workspaceId], references: [id])
+  name         String
+  duration     Int            // minutes
+  location     String?        // for in-person
+  bookings     Booking[]
+  availability Availability[]
+  createdAt    DateTime       @default(now())
+}
+
+model Availability {
+  id        String   @id @default(uuid())
+  serviceId String
+  service   Service  @relation(fields: [serviceId], references: [id])
+  dayOfWeek Int      // 0=Sunday, 6=Saturday
+  startTime String   // HH:mm
+  endTime   String   // HH:mm
+  createdAt DateTime @default(now())
+}
+
+model Booking {
+  id              String           @id @default(uuid())
+  workspaceId     String
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id])
+  serviceId       String
+  service         Service          @relation(fields: [serviceId], references: [id])
+  contactId       String
+  contact         Contact          @relation(fields: [contactId], references: [id])
+  startTime       DateTime
+  endTime         DateTime
+  status          String           @default("CONFIRMED") // CONFIRMED | COMPLETED | NO_SHOW | CANCELLED
+  formSubmissions FormSubmission[]
+  createdAt       DateTime         @default(now())
+}
+
+model Form {
+  id          String           @id @default(uuid())
+  workspaceId String
+  workspace   Workspace        @relation(fields: [workspaceId], references: [id])
+  name        String
+  fields      String           // JSON array of fields
+  type        String           // CONTACT | POST_BOOKING
+  submissions FormSubmission[]
+  createdAt   DateTime         @default(now())
+}
+
+model FormSubmission {
+  id        String   @id @default(uuid())
+  formId    String
+  form      Form     @relation(fields: [formId], references: [id])
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  data      String   // JSON submission data
+  status    String   @default("PENDING") // PENDING | COMPLETED
+  createdAt DateTime @default(now())
+}
+
+model Inventory {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  name        String
+  quantity    Int
+  threshold   Int       // alert when below this
+  unit        String    // pieces, liters, etc
+  createdAt   DateTime  @default(now())
+}
+
+model Alert {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+  type        String    // INVENTORY_LOW | FORM_PENDING | MISSED_MESSAGE | BOOKING_UNCONFIRMED
+  message     String
+  link        String?   // where to go to fix it
+  resolved    Boolean   @default(false)
+  createdAt   DateTime  @default(now())
+}
+
+model AutomationRule {
+  id          String    @id @default(uuid())
+  workspaceId String
+  workspace   Workspace @relation(fields: [workspaceId], references: [id])
+
+  trigger     String
+  action      String
+  config      String
+  active      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+}
