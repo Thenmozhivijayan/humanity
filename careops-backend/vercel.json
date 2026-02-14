@@ -11,19 +11,5 @@
       "src": "/(.*)",
       "dest": "index.js"
     }
-  ],
-  "crons": [
-    {
-      "path": "/automation/run/bookings",
-      "schedule": "0 9 * * *"
-    },
-    {
-      "path": "/automation/run/forms",
-      "schedule": "0 10 * * *"
-    },
-    {
-      "path": "/automation/run/inventory",
-      "schedule": "0 */6 * * *"
-    }
   ]
 }

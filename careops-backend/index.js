@@ -1102,29 +1102,35 @@ app.post("/workspace/:id/activate", async (req, res) => {
 });
 
 // --------------------
-app.listen(4000, () => {
-  console.log("Backend running on http://localhost:4000");
+// Start server only in development (not on Vercel)
+if (process.env.NODE_ENV !== 'production') {
+  app.listen(4000, () => {
+    console.log("Backend running on http://localhost:4000");
 
-  // Start automation jobs
-  console.log("[AUTOMATION] Starting scheduled jobs...");
+    // Start automation jobs
+    console.log("[AUTOMATION] Starting scheduled jobs...");
 
-  // Every day at 9 AM - Check bookings 24h before
-  cron.schedule("0 9 * * *", () => {
-    console.log("[CRON] Running booking reminders...");
-    checkUpcomingBookings();
+    // Every day at 9 AM - Check bookings 24h before
+    cron.schedule("0 9 * * *", () => {
+      console.log("[CRON] Running booking reminders...");
+      checkUpcomingBookings();
+    });
+
+    // Every day at 10 AM - Check pending forms
+    cron.schedule("0 10 * * *", () => {
+      console.log("[CRON] Checking pending forms...");
+      checkPendingForms();
+    });
+
+    // Every 6 hours - Check inventory
+    cron.schedule("0 */6 * * *", () => {
+      console.log("[CRON] Checking inventory levels...");
+      checkInventoryLevels();
+    });
+
+    console.log("[AUTOMATION] Jobs scheduled successfully");
   });
+}
 
-  // Every day at 10 AM - Check pending forms
-  cron.schedule("0 10 * * *", () => {
-    console.log("[CRON] Checking pending forms...");
-    checkPendingForms();
-  });
-
-  // Every 6 hours - Check inventory
-  cron.schedule("0 */6 * * *", () => {
-    console.log("[CRON] Checking inventory levels...");
-    checkInventoryLevels();
-  });
-
-  console.log("[AUTOMATION] Jobs scheduled successfully");
-});
+// Export for Vercel
+export default app;
